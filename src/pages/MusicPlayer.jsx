@@ -49,32 +49,37 @@ export default function MusicPlayer() {
     setAddError('');
     try {
       const bvid = extractBvid(bvInput);
-      // Fetch video info
-      const res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`);
+      const CORS_PROXY = 'https://corsproxy.io/?';
+
+      // Fetch video info via CORS proxy
+      const infoUrl = `${CORS_PROXY}${encodeURIComponent(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)}`;
+      const res = await fetch(infoUrl);
       const json = await res.json();
       if (json.code !== 0) throw new Error(json.message || '获取视频信息失败');
 
-      const { title, owner, cid, pic } = json.data;
+      const { title, owner, cid } = json.data;
       setAddTitle(title);
       setAddArtist(owner?.name || 'B站UP主');
 
-      // Try to fetch audio stream URL
-      try {
-        const audioRes = await fetch(
-          `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`
-        );
-        const audioJson = await audioRes.json();
-        if (audioJson.code === 0 && audioJson.data?.dash?.audio?.length > 0) {
-          setAddUrl(audioJson.data.dash.audio[0].baseUrl || audioJson.data.dash.audio[0].base_url || '');
-        }
-      } catch {
-        // Audio fetch might fail due to CORS — user can use URL mode instead
-        setAddError('音频流获取失败（可能需要代理），已自动填入歌曲信息。请切换到"输入链接"模式手动粘贴音频直链。');
-      }
+      // Fetch audio stream URL via CORS proxy
+      const audioUrl = `${CORS_PROXY}${encodeURIComponent(
+        `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`
+      )}`;
+      const audioRes = await fetch(audioUrl);
+      const audioJson = await audioRes.json();
 
+      if (audioJson.code === 0 && audioJson.data?.dash?.audio?.length > 0) {
+        const rawUrl = audioJson.data.dash.audio[0].baseUrl || audioJson.data.dash.audio[0].base_url || '';
+        if (rawUrl) {
+          // B站 audio CDN might need referer, so proxy it too
+          setAddUrl(`${CORS_PROXY}${encodeURIComponent(rawUrl)}`);
+        }
+      } else {
+        setAddError('未找到音频流，可能是付费或受限内容');
+      }
       setFetchingBili(false);
     } catch (err) {
-      setAddError('获取B站视频失败: ' + (err.message || '未知错误'));
+      setAddError('获取失败: ' + (err.message || '网络错误，请检查链接或稍后重试'));
       setFetchingBili(false);
     }
   };
