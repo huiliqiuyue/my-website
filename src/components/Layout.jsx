@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import FloatingPet from './FloatingPet';
+import JiaRanPet from './JiaRanPet';
 
 export default function Layout() {
   const { pathname } = useLocation();
@@ -18,7 +18,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
-      <FloatingPet />
+      <JiaRanPet />
     </div>
   );
 }
