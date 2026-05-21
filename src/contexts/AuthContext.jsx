@@ -42,23 +42,23 @@ export function AuthProvider({ children }) {
   }, [fetchProfile]);
 
   const signUp = async (email, password, displayName) => {
-    // Step 1: Create auth user
+    console.log('signUp start:', { email, displayName });
+
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { display_name: displayName } },
     });
+
+    console.log('signUp result:', { user: !!signUpData?.user, session: !!signUpData?.session, error: signUpError });
+
     if (signUpError) throw signUpError;
 
-    // Step 2: Manually insert profile (bypass trigger issues)
     if (signUpData.user) {
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({ id: signUpData.user.id, display_name: displayName, role: 'user' });
-      // Ignore duplicate key errors (profile might already exist from trigger)
-      if (profileError && profileError.code !== '23505') {
-        console.warn('Profile insert error:', profileError);
-      }
+      console.log('profile insert:', { error: profileError });
     }
     return signUpData;
   };
