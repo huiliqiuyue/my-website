@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const links = [
   { to: '/', label: '首页' },
   { to: '/blog', label: '博客' },
+  { to: '/showcase', label: '作品展' },
   { to: '/games', label: '游戏' },
   { to: '/about', label: '关于' },
 ];
@@ -63,7 +64,7 @@ export default function Navbar() {
             </NavLink>
           ))}
 
-          {/* Auth button */}
+          {/* Auth button (desktop) */}
           {user ? (
             <div className="relative ml-2" ref={userMenuRef}>
               <button
