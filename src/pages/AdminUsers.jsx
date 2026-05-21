@@ -4,7 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
 export default function AdminUsers() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile: myProfile } = useAuth();
+  const isVip = myProfile?.role === 'vip';
+  const canManage = isAdmin || isVip;
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -21,6 +24,7 @@ export default function AdminUsers() {
   useEffect(() => { fetchUsers(); }, []);
 
   const toggleBan = async (userId, currentlyBanned) => {
+    if (!isAdmin && !isVip) return;
     await supabase
       .from('profiles')
       .update({ banned: !currentlyBanned })
@@ -28,7 +32,16 @@ export default function AdminUsers() {
     fetchUsers();
   };
 
-  if (!isAdmin) {
+  const setRole = async (userId, newRole) => {
+    if (!isAdmin) return; // Only admin can change roles
+    await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId);
+    fetchUsers();
+  };
+
+  if (!canManage) {
     return (
       <div className="text-center py-20">
         <p className="text-text-muted">无权访问此页面</p>
@@ -40,9 +53,16 @@ export default function AdminUsers() {
   const filtered = users.filter((u) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (u.display_name || '').toLowerCase().includes(q) ||
-           (u.id || '').toLowerCase().includes(q);
+    return (u.display_name || '').toLowerCase().includes(q);
   });
+
+  const canBanThis = (targetUser) => {
+    if (!isVip && !isAdmin) return false;
+    if (targetUser.role === 'admin') return false; // Never ban admin
+    if (isVip && targetUser.role === 'vip') return false; // VIP can't ban VIP
+    if (targetUser.id === myProfile?.id) return false; // Can't ban self
+    return true;
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -63,32 +83,48 @@ export default function AdminUsers() {
       ) : (
         <div className="space-y-2">
           {filtered.map((u) => (
-            <div key={u.id} className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary-light overflow-hidden">
+            <div key={u.id} className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 gap-3 flex-wrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary-light overflow-hidden shrink-0">
                   {u.avatar_url ? <img src={u.avatar_url} alt="" className="w-full h-full object-cover" /> : (u.display_name || '?')[0].toUpperCase()}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-text">{u.display_name || '未命名'}</span>
-                    {u.role === 'admin' && <span className="text-[10px] bg-primary/20 text-primary-light px-1.5 py-0.5 rounded">管理员</span>}
-                    {u.banned && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">已封禁</span>}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-text truncate">{u.display_name || '未命名'}</span>
+                    {u.role === 'admin' && <span className="text-[10px] bg-primary/20 text-primary-light px-1.5 py-0.5 rounded shrink-0">管理员</span>}
+                    {u.role === 'vip' && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded shrink-0">VIP</span>}
+                    {u.banned && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded shrink-0">已封禁</span>}
                   </div>
-                  <span className="text-xs text-text-muted">{u.id?.slice(0, 8)}...</span>
                 </div>
               </div>
-              {u.role !== 'admin' && (
-                <button
-                  onClick={() => toggleBan(u.id, u.banned)}
-                  className={`text-xs px-3 py-1 rounded-md font-medium transition-colors ${
-                    u.banned
-                      ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25'
-                      : 'bg-red-500/15 text-red-400 hover:bg-red-500/25'
-                  }`}
-                >
-                  {u.banned ? '解封' : '封禁'}
-                </button>
-              )}
+
+              <div className="flex items-center gap-1.5">
+                {/* Role selector - admin only */}
+                {isAdmin && u.role !== 'admin' && (
+                  <select
+                    value={u.role}
+                    onChange={(e) => setRole(u.id, e.target.value)}
+                    className="text-xs rounded-md border border-border bg-surface-alt px-2 py-1 text-text focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  >
+                    <option value="user">普通用户</option>
+                    <option value="vip">VIP</option>
+                    <option value="admin">管理员</option>
+                  </select>
+                )}
+
+                {/* Ban button */}
+                {canBanThis(u) && (
+                  <button onClick={() => toggleBan(u.id, u.banned)}
+                    className={`text-xs px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      u.banned
+                        ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25'
+                        : 'bg-red-500/15 text-red-400 hover:bg-red-500/25'
+                    }`}
+                  >
+                    {u.banned ? '解封' : '封禁'}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           {filtered.length === 0 && (

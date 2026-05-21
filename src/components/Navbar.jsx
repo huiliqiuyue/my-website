@@ -87,7 +87,7 @@ export default function Navbar() {
                   >
                     个人资料
                   </Link>
-                  {profile?.role === 'admin' && (
+                  {(profile?.role === 'admin' || profile?.role === 'vip') && (
                     <Link
                       to="/admin/users"
                       onClick={() => setUserMenuOpen(false)}
