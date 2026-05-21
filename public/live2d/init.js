@@ -152,9 +152,9 @@
     var coreModel = model.internalModel.coreModel;
     var motionManager = model.internalModel.motionManager;
 
-    canvas.onclick = function () {
+    // 存储点击处理函数，供统一的 drag/click 逻辑调用
+    pio._onCanvasClick = function () {
       if (motionManager.state.currentGroup !== 'Idle') return;
-      clickCallbacks.forEach(function (cb) { cb(); });
 
       if (touchList.length > 0) {
         var action = touchList[Math.floor(Math.random() * touchList.length)];
@@ -203,30 +203,53 @@
     }, 4000);
   }
 
-  // ---- 拖动 ----
+  // ---- 拖动 + 点击（统一处理） ----
+
+  var dragState = { active: false, moved: false, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
 
   function setupDrag() {
     var body = container;
-    body.onmousedown = function (downEvent) {
-      if (downEvent.target.tagName === 'CANVAS') return; // let pio handle canvas clicks
-      var loc = {
-        x: downEvent.clientX - body.offsetLeft,
-        y: downEvent.clientY - body.offsetTop,
-      };
-      function move(moveEvent) {
+
+    body.onmousedown = function (e) {
+      dragState.active = true;
+      dragState.moved = false;
+      dragState.startX = e.clientX;
+      dragState.startY = e.clientY;
+      dragState.startLeft = body.offsetLeft;
+      dragState.startTop = body.offsetTop;
+      e.preventDefault();
+    };
+
+    document.addEventListener('mousemove', function (e) {
+      if (!dragState.active) return;
+      var dx = e.clientX - dragState.startX;
+      var dy = e.clientY - dragState.startY;
+      if (!dragState.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+        dragState.moved = true;
         body.classList.add('active');
         body.classList.remove('right', 'left');
-        body.style.left = moveEvent.clientX - loc.x + 'px';
-        body.style.top = moveEvent.clientY - loc.y + 'px';
-        body.style.bottom = 'auto';
         body.style.right = 'auto';
+        body.style.bottom = 'auto';
       }
-      document.addEventListener('mousemove', move);
-      document.addEventListener('mouseup', function () {
+      if (dragState.moved) {
+        body.style.left = dragState.startLeft + dx + 'px';
+        body.style.top = dragState.startTop + dy + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (!dragState.active) return;
+      var wasMoved = dragState.moved;
+      dragState.active = false;
+
+      if (wasMoved) {
         body.classList.remove('active');
-        document.removeEventListener('mousemove', move);
-      });
-    };
+      } else {
+        // 纯点击 → 触发回调 + 模型点击逻辑
+        clickCallbacks.forEach(function (cb) { cb(); });
+        if (pio && pio._onCanvasClick) pio._onCanvasClick();
+      }
+    });
   }
 
   // ---- API 导出 ----
@@ -243,6 +266,9 @@
 
   function onUserClick(cb) {
     clickCallbacks.push(cb);
+    return function () {
+      clickCallbacks = clickCallbacks.filter(function (c) { return c !== cb; });
+    };
   }
 
   function playMotion(name) {
@@ -257,12 +283,10 @@
     initPixi();
     addStyle(CUSTOM_CSS);
 
-    // 使用简化的 pio 初始化
-    var model = loadModel(DIANA_MODEL_URL, onModelLoad);
-
-    // 创建简化 pio 对象
+    // 先创建 pio 对象，确保 onModelLoad 里能用到
     pio = {
-      model: model,
+      model: null,
+      _onCanvasClick: null,
       modules: {
         render: render,
         rand: function (arr) { return arr[Math.floor(Math.random() * arr.length)]; },
@@ -272,6 +296,9 @@
         },
       },
     };
+
+    // 加载模型
+    pio.model = loadModel(DIANA_MODEL_URL, onModelLoad);
 
     setupDrag();
     pio_refresh_style();

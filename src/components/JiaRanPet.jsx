@@ -33,28 +33,24 @@ export default function JiaRanPet() {
 
   // 注册点击回调 & 追踪位置
   useEffect(() => {
-    const checkJiaRan = () => {
-      if (window.__jiaRan) {
-        window.__jiaRan.onClick(() => {
-          setChatOpen((prev) => !prev);
-        });
+    let removeClick = null;
+    let posInterval = null;
 
-        // 定期更新位置
-        const updatePos = () => {
-          setMascotPos(window.__jiaRan.getPos());
-        };
-        updatePos();
-        const posInterval = setInterval(updatePos, 500);
+    if (window.__jiaRan) {
+      removeClick = window.__jiaRan.onClick(() => {
+        setChatOpen((prev) => !prev);
+      });
 
-        return () => clearInterval(posInterval);
-      }
-      return null;
-    };
-
-    const cleanup = checkJiaRan();
+      const updatePos = () => {
+        setMascotPos(window.__jiaRan.getPos());
+      };
+      updatePos();
+      posInterval = setInterval(updatePos, 500);
+    }
 
     return () => {
-      if (cleanup) cleanup();
+      if (removeClick) removeClick();
+      if (posInterval) clearInterval(posInterval);
     };
   }, []);
 
