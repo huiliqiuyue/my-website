@@ -25,11 +25,16 @@
 | 分类 & 标签 | 扫雷 | 音量调节 | 沉浸全屏 |
 | 搜索 & 评论 | 无限跑酷 | 文件上传 | 装扮商店 |
 
-| 👤 **用户系统** | 🛡️ **权限管理** |
+| 🐱 **桌面宠物** | 👤 **用户系统** |
 |:---:|:---:|
-| 邮箱注册/登录 | 三级角色 |
-| 个人资料（头像） | 封禁/解封 |
-| 关于页管理 | VIP 设置 |
+| 3D 立体猫娘 | 邮箱注册/登录 |
+| 拖拽移动 | 三级角色 |
+| 点击聊天 | 个人资料（头像） |
+| 表情动画 | 封禁/VIP/管理 |
+| 🎨 **作品展** | 🛡️ **权限** |
+| 上传 HTML | 管理员全权限 |
+| 安全沙盒 | VIP可封禁 |
+| 全屏预览 | 用户发文章 |
 
 ---
 
@@ -59,6 +64,7 @@ npm run dev             # http://localhost:5173
 ```env
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=你的key
+VITE_DEEPSEEK_KEY=sk-你的DeepSeek密钥  # AI 桌面宠物 + AI 聊天
 ```
 
 ### 3️⃣ 初始化数据库
@@ -213,6 +219,7 @@ VITE_BILI_PROXY=https://bili-proxy.你的账号.workers.dev
  │   │   ├── AuthGuard.jsx       路由守卫
  │   │   ├── BlogCard.jsx        文章卡片
  │   │   ├── CommentSection.jsx  评论区
+ │   │   ├── FloatingPet.jsx     桌面猫娘宠物
  │   │   ├── Footer.jsx          页脚
  │   │   ├── Layout.jsx          布局壳
  │   │   └── Navbar.jsx          导航栏 + 用户菜单
