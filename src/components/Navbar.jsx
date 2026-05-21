@@ -87,6 +87,15 @@ export default function Navbar() {
                   >
                     个人资料
                   </Link>
+                  {profile?.role === 'admin' && (
+                    <Link
+                      to="/admin/users"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block w-full text-left px-3 py-2 text-sm text-text-muted hover:text-text hover:bg-surface-alt transition-colors"
+                    >
+                      用户管理
+                    </Link>
+                  )}
                   <button
                     onClick={handleSignOut}
                     className="w-full text-left px-3 py-2 text-sm text-text-muted hover:text-text hover:bg-surface-alt transition-colors"

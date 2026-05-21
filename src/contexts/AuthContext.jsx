@@ -66,6 +66,18 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // Check if banned
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('banned')
+        .eq('id', data.user.id)
+        .single();
+      if (profile?.banned) {
+        await supabase.auth.signOut();
+        throw new Error('您的账号已被封禁');
+      }
+    }
     return data;
   };
 

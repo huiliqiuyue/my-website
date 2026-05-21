@@ -6,6 +6,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { readingTime } from '../utils/readingTime';
+import CommentSection from '../components/CommentSection';
 
 export default function BlogPost() {
   const { slug } = useParams();
@@ -98,7 +99,9 @@ export default function BlogPost() {
         </ReactMarkdown>
       </div>
 
-      <div className="mt-12 pt-8 border-t border-border">
+      <CommentSection postSlug={slug} />
+
+      <div className="mt-8 pt-8 border-t border-border">
         <Link to="/blog" className="text-accent hover:text-primary-light transition-colors text-sm">
           &larr; 返回文章列表
         </Link>
