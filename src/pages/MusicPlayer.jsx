@@ -30,9 +30,54 @@ export default function MusicPlayer() {
   const [addArtist, setAddArtist] = useState('');
   const [addFile, setAddFile] = useState(null);
   const [addUrl, setAddUrl] = useState('');
-  const [addMode, setAddMode] = useState('file'); // 'file' | 'url'
+  const [addMode, setAddMode] = useState('file'); // 'file' | 'url' | 'bilibili'
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
+
+  // Bilibili
+  const [bvInput, setBvInput] = useState('');
+  const [fetchingBili, setFetchingBili] = useState(false);
+
+  const extractBvid = (input) => {
+    const m = input.match(/BV[\w]+/i);
+    return m ? m[0] : input.trim();
+  };
+
+  const handleBiliFetch = async () => {
+    if (!bvInput.trim()) return;
+    setFetchingBili(true);
+    setAddError('');
+    try {
+      const bvid = extractBvid(bvInput);
+      // Fetch video info
+      const res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`);
+      const json = await res.json();
+      if (json.code !== 0) throw new Error(json.message || '获取视频信息失败');
+
+      const { title, owner, cid, pic } = json.data;
+      setAddTitle(title);
+      setAddArtist(owner?.name || 'B站UP主');
+
+      // Try to fetch audio stream URL
+      try {
+        const audioRes = await fetch(
+          `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`
+        );
+        const audioJson = await audioRes.json();
+        if (audioJson.code === 0 && audioJson.data?.dash?.audio?.length > 0) {
+          setAddUrl(audioJson.data.dash.audio[0].baseUrl || audioJson.data.dash.audio[0].base_url || '');
+        }
+      } catch {
+        // Audio fetch might fail due to CORS — user can use URL mode instead
+        setAddError('音频流获取失败（可能需要代理），已自动填入歌曲信息。请切换到"输入链接"模式手动粘贴音频直链。');
+      }
+
+      setFetchingBili(false);
+    } catch (err) {
+      setAddError('获取B站视频失败: ' + (err.message || '未知错误'));
+      setFetchingBili(false);
+    }
+  };
 
   const audioRef = useRef(null);
   const animFrameRef = useRef(null);
@@ -163,6 +208,7 @@ export default function MusicPlayer() {
       setAddArtist('');
       setAddFile(null);
       setAddUrl('');
+      setBvInput('');
     } catch (err) {
       setAddError(err.message || '添加失败');
     }
@@ -329,9 +375,24 @@ export default function MusicPlayer() {
               <div className="flex rounded-lg bg-surface-alt p-0.5">
                 <button onClick={() => setAddMode('file')} className={`flex-1 py-1.5 text-xs rounded-md transition-colors ${addMode === 'file' ? 'bg-surface text-text shadow-sm' : 'text-text-muted'}`}>上传文件</button>
                 <button onClick={() => setAddMode('url')} className={`flex-1 py-1.5 text-xs rounded-md transition-colors ${addMode === 'url' ? 'bg-surface text-text shadow-sm' : 'text-text-muted'}`}>输入链接</button>
+                <button onClick={() => setAddMode('bilibili')} className={`flex-1 py-1.5 text-xs rounded-md transition-colors ${addMode === 'bilibili' ? 'bg-surface text-text shadow-sm' : 'text-text-muted'}`}>B站导入</button>
               </div>
 
-              {addMode === 'file' ? (
+              {addMode === 'bilibili' ? (
+                <div>
+                  <label className="block text-xs text-text-muted mb-1">B站视频链接或 BV 号</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={bvInput} onChange={(e) => setBvInput(e.target.value)}
+                      className="flex-1 rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+                      placeholder="https://www.bilibili.com/video/BVxxx 或直接输入 BVxxx" />
+                    <button onClick={handleBiliFetch} disabled={fetchingBili || !bvInput.trim()}
+                      className="rounded-lg bg-pink-500 px-4 py-2 text-sm font-medium text-white hover:bg-pink-600 transition-colors disabled:opacity-50 shrink-0">
+                      {fetchingBili ? '获取中...' : '获取'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-text-muted mt-1">自动获取歌曲名和UP主名，并尝试解析音频流。</p>
+                </div>
+              ) : addMode === 'file' ? (
                 <div>
                   <label className="block text-xs text-text-muted mb-1">音频文件 (mp3/ogg/wav, 最大 20MB)</label>
                   <input type="file" accept="audio/*" onChange={(e) => setAddFile(e.target.files[0])}
