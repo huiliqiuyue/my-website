@@ -49,75 +49,68 @@ export default function MusicPlayer() {
     setAddError('');
     try {
       const bvid = extractBvid(bvInput);
+      const WORKER_URL = import.meta.env.VITE_BILI_PROXY || '';
 
-      // Try multiple CORS proxies
-      const proxies = [
-        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        (url) => `https://cors-anywhere.herokuapp.com/${url}`,
-        (url) => `https://proxy.cors.sh/${url}`,
-      ];
-
-      // Fetch video info with fallback
-      let json = null;
-      const apiUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`;
-
-      // Try proxies
-      for (const proxyFn of proxies) {
-        try {
-          const res = await fetch(proxyFn(apiUrl), {
-            headers: { 'x-requested-with': 'XMLHttpRequest' }
-          });
-          const text = await res.text();
+      // Helper: fetch JSON from Worker or fallback proxies
+      const fetchApi = async (endpoint, params) => {
+        // 1. Try dedicated Worker first
+        if (WORKER_URL) {
           try {
-            json = JSON.parse(text);
-            if (json?.code === 0) break;
-          } catch { continue; }
-        } catch { continue; }
-      }
-
-      if (!json || json.code !== 0) {
-        // All proxies failed — fallback: just extract title from URL
-        setAddTitle(bvid);
-        setAddArtist('B站UP主');
-        setAddUrl(`https://www.bilibili.com/video/${bvid}`);
-        setAddError('无法通过代理获取音频流。请使用在线工具提取 B站 音频直链后，切换到"输入链接"模式粘贴。');
-        setFetchingBili(false);
-        return;
-      }
-
-      const { title, owner, cid } = json.data;
-      setAddTitle(title);
-      setAddArtist(owner?.name || 'B站UP主');
-
-      // Fetch audio stream with fallback
-      const playUrl = `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`;
-      let audioJson = null;
-
-      for (const proxyFn of proxies) {
-        try {
-          const res = await fetch(proxyFn(playUrl), {
-            headers: { 'x-requested-with': 'XMLHttpRequest' }
-          });
-          const text = await res.text();
-          try {
-            audioJson = JSON.parse(text);
-            if (audioJson?.code === 0) break;
-          } catch { continue; }
-        } catch { continue; }
-      }
-
-      if (audioJson?.code === 0 && audioJson.data?.dash?.audio?.length > 0) {
-        const rawUrl = audioJson.data.dash.audio[0].baseUrl || audioJson.data.dash.audio[0].base_url || '';
-        if (rawUrl) {
-          setAddUrl(rawUrl); // Try direct URL first
+            const qs = new URLSearchParams(params).toString();
+            const res = await fetch(`${WORKER_URL}?${qs}`);
+            const data = await res.json();
+            if (!data.error) return data;
+          } catch {}
         }
+
+        // 2. Fallback to public proxies
+        const url = endpoint.startsWith('http') ? endpoint : '';
+        const proxies = [
+          (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+          (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        ];
+        for (const fn of proxies) {
+          try {
+            const res = await fetch(fn(url));
+            const data = await res.json();
+            if (data?.code === 0) return data;
+          } catch { continue; }
+        }
+        throw new Error('所有代理均不可用');
+      };
+
+      // Step 1: Get video info
+      const infoParams = WORKER_URL
+        ? { bvid, type: 'info' }
+        : {};
+      const infoUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`;
+      const infoData = WORKER_URL
+        ? await fetchApi('', { bvid, type: 'info' })
+        : await fetchApi(infoUrl, {});
+
+      setAddTitle(infoData.title || bvid);
+      setAddArtist(infoData.artist || infoData.owner?.name || 'B站UP主');
+      const cid = infoData.cid || infoData.data?.cid;
+
+      // Step 2: Get audio URL
+      if (cid) {
+        const audioParams = WORKER_URL
+          ? { bvid, cid, type: 'audio' }
+          : {};
+        const playUrl = `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`;
+        const audioData = WORKER_URL
+          ? await fetchApi('', audioParams)
+          : await fetchApi(playUrl, {});
+
+        const rawUrl = audioData?.url || audioData?.data?.dash?.audio?.[0]?.baseUrl || audioData?.data?.dash?.audio?.[0]?.base_url || '';
+        if (rawUrl) setAddUrl(rawUrl);
+        else setAddError('歌曲信息已获取，音频流解析失败。请先部署 Worker 代理（见 worker-bili.js）。');
       } else {
-        setAddError('歌曲信息已获取，但音频流解析失败。请切换到"输入链接"模式手动粘贴音频直链。');
+        setAddError('歌曲信息已获取，但缺少视频分P信息。');
       }
       setFetchingBili(false);
     } catch (err) {
-      setAddError('网络错误，请稍后重试。或切换到"输入链接"模式手动粘贴音频链接。');
+      setAddError('获取失败。请部署 Cloudflare Worker 代理（项目根目录 worker-bili.js），在 .env 中配置 VITE_BILI_PROXY=你的Worker地址 后重试。');
       setFetchingBili(false);
     }
   };
