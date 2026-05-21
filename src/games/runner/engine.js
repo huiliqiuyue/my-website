@@ -1,8 +1,8 @@
 // Endless Runner Engine — Chrome Dino Style
 
 export const GROUND_Y = 0.75; // Ground at 75% of canvas height
-export const GRAVITY = 0.0018;
-export const JUMP_VEL = -0.045;
+export const GRAVITY = -0.002;
+export const JUMP_VEL = 0.05;
 export const BASE_SPEED = 0.012;
 export const MAX_SPEED = 0.04;
 
@@ -26,11 +26,11 @@ export function tick(state) {
   // Speed up over time
   s.speed = Math.min(BASE_SPEED + s.frame * 0.000003, MAX_SPEED);
 
-  // Gravity + jump
+  // Gravity + jump (y positive = above ground)
   s.player = { ...s.player };
   s.player.vy += GRAVITY;
   s.player.y += s.player.vy;
-  if (s.player.y >= 0) {
+  if (s.player.y <= 0) {
     s.player.y = 0;
     s.player.vy = 0;
     s.player.jumping = false;
@@ -52,7 +52,7 @@ export function tick(state) {
     s.obstacles.push({ x: 1.05, width: 0.04 + Math.random() * 0.06, height: h });
   }
 
-  // Collision detection
+  // Collision detection (y positive = above ground)
   const px = 0.15;
   const pw = s.player.width;
   const ph = s.player.height;
