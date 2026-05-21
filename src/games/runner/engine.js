@@ -3,8 +3,8 @@
 export const GROUND_Y = 0.75; // Ground at 75% of canvas height
 export const GRAVITY = -0.002;
 export const JUMP_VEL = 0.05;
-export const BASE_SPEED = 0.012;
-export const MAX_SPEED = 0.04;
+export const BASE_SPEED = 0.005;
+export const MAX_SPEED = 0.018;
 
 export function createState() {
   return {
@@ -46,10 +46,10 @@ export function tick(state) {
   // Remove off-screen obstacles
   s.obstacles = s.obstacles.filter((o) => o.x > -0.2);
 
-  // Spawn obstacles
-  if (s.obstacles.length === 0 || (s.obstacles[s.obstacles.length - 1].x < 0.6 && Math.random() < 0.012)) {
-    const h = 0.08 + Math.random() * 0.16; // random height
-    s.obstacles.push({ x: 1.05, width: 0.04 + Math.random() * 0.06, height: h });
+  // Spawn obstacles (slower rate, wider gaps)
+  if (s.obstacles.length === 0 || (s.obstacles[s.obstacles.length - 1].x < 0.5 && Math.random() < 0.008)) {
+    const h = 0.08 + Math.random() * 0.12; // shorter obstacles
+    s.obstacles.push({ x: 1.05, width: 0.03 + Math.random() * 0.04, height: h });
   }
 
   // Collision detection (y positive = above ground)
