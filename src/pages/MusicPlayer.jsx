@@ -49,37 +49,75 @@ export default function MusicPlayer() {
     setAddError('');
     try {
       const bvid = extractBvid(bvInput);
-      const CORS_PROXY = 'https://corsproxy.io/?';
 
-      // Fetch video info via CORS proxy
-      const infoUrl = `${CORS_PROXY}${encodeURIComponent(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)}`;
-      const res = await fetch(infoUrl);
-      const json = await res.json();
-      if (json.code !== 0) throw new Error(json.message || '获取视频信息失败');
+      // Try multiple CORS proxies
+      const proxies = [
+        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        (url) => `https://cors-anywhere.herokuapp.com/${url}`,
+        (url) => `https://proxy.cors.sh/${url}`,
+      ];
+
+      // Fetch video info with fallback
+      let json = null;
+      const apiUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`;
+
+      // Try proxies
+      for (const proxyFn of proxies) {
+        try {
+          const res = await fetch(proxyFn(apiUrl), {
+            headers: { 'x-requested-with': 'XMLHttpRequest' }
+          });
+          const text = await res.text();
+          try {
+            json = JSON.parse(text);
+            if (json?.code === 0) break;
+          } catch { continue; }
+        } catch { continue; }
+      }
+
+      if (!json || json.code !== 0) {
+        // All proxies failed — fallback: just extract title from URL
+        setAddTitle(bvid);
+        setAddArtist('B站UP主');
+        setAddUrl(`https://www.bilibili.com/video/${bvid}`);
+        setAddError('无法通过代理获取音频流。请使用在线工具提取 B站 音频直链后，切换到"输入链接"模式粘贴。');
+        setFetchingBili(false);
+        return;
+      }
 
       const { title, owner, cid } = json.data;
       setAddTitle(title);
       setAddArtist(owner?.name || 'B站UP主');
 
-      // Fetch audio stream URL via CORS proxy
-      const audioUrl = `${CORS_PROXY}${encodeURIComponent(
-        `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`
-      )}`;
-      const audioRes = await fetch(audioUrl);
-      const audioJson = await audioRes.json();
+      // Fetch audio stream with fallback
+      const playUrl = `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`;
+      let audioJson = null;
 
-      if (audioJson.code === 0 && audioJson.data?.dash?.audio?.length > 0) {
+      for (const proxyFn of proxies) {
+        try {
+          const res = await fetch(proxyFn(playUrl), {
+            headers: { 'x-requested-with': 'XMLHttpRequest' }
+          });
+          const text = await res.text();
+          try {
+            audioJson = JSON.parse(text);
+            if (audioJson?.code === 0) break;
+          } catch { continue; }
+        } catch { continue; }
+      }
+
+      if (audioJson?.code === 0 && audioJson.data?.dash?.audio?.length > 0) {
         const rawUrl = audioJson.data.dash.audio[0].baseUrl || audioJson.data.dash.audio[0].base_url || '';
         if (rawUrl) {
-          // B站 audio CDN might need referer, so proxy it too
-          setAddUrl(`${CORS_PROXY}${encodeURIComponent(rawUrl)}`);
+          setAddUrl(rawUrl); // Try direct URL first
         }
       } else {
-        setAddError('未找到音频流，可能是付费或受限内容');
+        setAddError('歌曲信息已获取，但音频流解析失败。请切换到"输入链接"模式手动粘贴音频直链。');
       }
       setFetchingBili(false);
     } catch (err) {
-      setAddError('获取失败: ' + (err.message || '网络错误，请检查链接或稍后重试'));
+      setAddError('网络错误，请稍后重试。或切换到"输入链接"模式手动粘贴音频链接。');
       setFetchingBili(false);
     }
   };
