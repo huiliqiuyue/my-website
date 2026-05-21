@@ -64,9 +64,11 @@ export default function RunnerGame() {
           setStarted(true);
           loopRef.current = requestAnimationFrame(gameLoop);
         } else {
+          const wasStarted = stateRef.current.started;
           stateRef.current = jump(stateRef.current);
-          if (!stateRef.current.started) {
+          if (!wasStarted) {
             setStarted(true);
+            loopRef.current = requestAnimationFrame(gameLoop);
           }
         }
       }
@@ -80,8 +82,12 @@ export default function RunnerGame() {
         setStarted(true);
         loopRef.current = requestAnimationFrame(gameLoop);
       } else {
+        const wasStarted = stateRef.current.started;
         stateRef.current = jump(stateRef.current);
-        if (!stateRef.current.started) setStarted(true);
+        if (!wasStarted) {
+          setStarted(true);
+          loopRef.current = requestAnimationFrame(gameLoop);
+        }
       }
     }
 
