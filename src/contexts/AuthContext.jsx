@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, profile, loading, isAdmin,
-      signUp, signIn, signOut,
+      signUp, signIn, signOut, fetchProfile,
     }}>
       {children}
     </AuthContext.Provider>

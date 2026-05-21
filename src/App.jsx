@@ -11,6 +11,7 @@ import Game2048 from './pages/Game2048';
 import MinesweeperGame from './pages/MinesweeperGame';
 import About from './pages/About';
 import Login from './pages/Login';
+import ProfileSettings from './pages/ProfileSettings';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="games/minesweeper" element={<MinesweeperGame />} />
           <Route path="about" element={<About />} />
           <Route path="login" element={<Login />} />
+          <Route path="profile" element={<AuthGuard><ProfileSettings /></AuthGuard>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
