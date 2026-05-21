@@ -38,7 +38,7 @@ jobs:
           VITE_SUPABASE_URL: https://sfszsdpeumhafkdrmzzo.supabase.co
           VITE_SUPABASE_ANON_KEY: sb_publishable_96w4H7oCxEFstq06olMQSA_mGnSQijw
           VITE_BILI_PROXY: https://bili-proxy.huiliqiuyue.workers.dev
-          VITE_DEEPSEEK_KEY: ${{ secrets.VITE_DEEPSEEK_KEY }}
+          VITE_DEEPSEEK_KEY: sk-1bd62825dd444543803b1005221a8f5b
         run: npm run build
 
       - name: Setup Pages
