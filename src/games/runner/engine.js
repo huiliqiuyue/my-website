@@ -74,8 +74,8 @@ export function tick(state) {
     }
   }
 
-  // Score
-  if (!s.gameOver) {
+  // Score — start after a brief delay so player can get ready
+  if (!s.gameOver && s.obstacles.length > 0) {
     s.score = Math.floor(s.score + s.speed * 100);
   }
 
@@ -161,69 +161,66 @@ export function draw(ctx, state, canvas) {
     }
   }
 
-  // Player (stick figure runner)
+  // Player (feet at ground, y lifts them up)
   const px = 0.15 * W;
-  const py = ground - state.player.y * H - state.player.height * H;
-  const ph = state.player.height * H;
+  const footY = ground - state.player.y * H;
+  const playerH = state.player.height * H;
+  const headY = footY - playerH;
+  const bodyTop = headY + playerH * 0.3;
 
-  // Body
-  ctx.fillStyle = '#818cf8';
-  ctx.fillRect(px - 4, py - ph * 0.6, 10, ph * 0.6);
-
-  // Head
-  ctx.fillStyle = '#6366f1';
-  ctx.beginPath();
-  ctx.arc(px + 1, py - ph * 0.7, ph * 0.25, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Eye
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(px + 5, py - ph * 0.73, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Legs (animated)
+  // Legs
   const legPhase = (state.frame * 0.2) % (Math.PI * 2);
   ctx.strokeStyle = '#6366f1';
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
 
-  const hipX = px;
-  const hipY = py - ph * 0.2;
-  const footY = py + 4;
-
-  // If jumping, legs are tucked
   if (state.player.jumping) {
+    // Tucked legs
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(hipX - 8, py);
+    ctx.moveTo(px, bodyTop + playerH * 0.3);
+    ctx.lineTo(px - 8, footY);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(hipX + 8, py);
+    ctx.moveTo(px, bodyTop + playerH * 0.3);
+    ctx.lineTo(px + 8, footY);
     ctx.stroke();
   } else {
-    // Running animation
-    const legLen = ph * 0.5;
-    const leftAngle = Math.sin(legPhase) * 0.6;
-    const rightAngle = Math.sin(legPhase + Math.PI) * 0.6;
+    const legLen = playerH * 0.45;
+    const leftAngle = Math.sin(legPhase) * 0.5;
+    const rightAngle = Math.sin(legPhase + Math.PI) * 0.5;
+    const hipY = bodyTop + playerH * 0.25;
 
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(hipX + Math.sin(leftAngle) * legLen * 0.7, hipY + legLen);
+    ctx.moveTo(px, hipY);
+    ctx.lineTo(px - 10 + Math.cos(leftAngle) * 4, footY);
     ctx.stroke();
-
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(hipX + Math.sin(rightAngle) * legLen * 0.7, hipY + legLen);
+    ctx.moveTo(px, hipY);
+    ctx.lineTo(px + 10 + Math.cos(rightAngle) * 4, footY);
     ctx.stroke();
   }
+
+  // Body
+  ctx.fillStyle = '#818cf8';
+  ctx.fillRect(px - 5, bodyTop, 10, playerH * 0.4);
+
+  // Head
+  ctx.fillStyle = '#6366f1';
+  ctx.beginPath();
+  ctx.arc(px, headY + playerH * 0.12, playerH * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px + 4, headY + playerH * 0.1, 2.5, 0, Math.PI * 2);
+  ctx.fill();
 
   // Arms
   const armPhase = state.player.jumping ? -0.5 : Math.sin(legPhase) * 0.5;
   ctx.beginPath();
-  ctx.moveTo(px, py - ph * 0.4);
-  ctx.lineTo(px + armPhase * 8, py - ph * 0.1);
+  ctx.moveTo(px, bodyTop + playerH * 0.05);
+  ctx.lineTo(px + armPhase * 10, bodyTop + playerH * 0.3);
   ctx.stroke();
 
   // Score (top right)
