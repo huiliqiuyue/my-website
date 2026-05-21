@@ -23,10 +23,12 @@ export default function Login() {
     try {
       if (tab === 'login') {
         await signIn(email, password);
+        navigate(from, { replace: true });
       } else {
         await signUp(email, password, displayName);
+        setError('注册成功！如果开启了邮箱验证，请查收确认邮件后再登录。');
+        setTab('login');
       }
-      navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || '操作失败，请重试');
     } finally {
