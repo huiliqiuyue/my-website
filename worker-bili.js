@@ -26,7 +26,10 @@ export default {
       if (type === 'info') {
         // 获取视频信息
         const res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
-          headers: { Referer: 'https://www.bilibili.com' },
+          headers: {
+            Referer: 'https://www.bilibili.com',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
         });
         const data = await res.json();
         if (data.code !== 0) {
@@ -47,7 +50,12 @@ export default {
         }
         const res = await fetch(
           `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16&fnver=0&fourk=1`,
-          { headers: { Referer: 'https://www.bilibili.com' } }
+          {
+            headers: {
+              Referer: 'https://www.bilibili.com',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+          }
         );
         const data = await res.json();
         if (data.code !== 0 || !data.data?.dash?.audio?.length) {

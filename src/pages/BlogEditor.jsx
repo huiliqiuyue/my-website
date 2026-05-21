@@ -21,6 +21,61 @@ export default function BlogEditor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(isEditing);
+  const [importing, setImporting] = useState(false);
+
+  const handleImportMd = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target.result;
+
+      // Parse frontmatter if present
+      const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+      if (match) {
+        const yamlStr = match[1];
+        const body = match[2];
+
+        // Parse YAML
+        const data = {};
+        let currentKey = null;
+        for (const line of yamlStr.split('\n')) {
+          const listMatch = line.match(/^\s{2}-\s+(.+)/);
+          if (listMatch && currentKey) {
+            data[currentKey] = data[currentKey] || [];
+            data[currentKey].push(listMatch[1].replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1'));
+            continue;
+          }
+          const inlineList = line.match(/^(\w+):\s*\[(.+)\]$/);
+          if (inlineList) {
+            data[inlineList[1]] = inlineList[2].split(',').map(s => s.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1'));
+            continue;
+          }
+          const kv = line.match(/^(\w+):\s*(.+)/);
+          if (kv) {
+            currentKey = kv[1];
+            let v = kv[2].trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+            data[currentKey] = v;
+          }
+        }
+
+        if (data.title && !title) setTitle(data.title);
+        if (data.tags) setTags(Array.isArray(data.tags) ? data.tags.join(', ') : data.tags);
+        if (data.category) setCategory(data.category);
+        if (data.excerpt) setExcerpt(data.excerpt);
+        setContent(body);
+      } else {
+        // No frontmatter — use filename as title, whole content as body
+        if (!title) setTitle(file.name.replace(/\.md$/i, ''));
+        setContent(text);
+      }
+      setImporting(false);
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset input
+  };
 
   // Load existing post for editing
   useEffect(() => {
@@ -157,7 +212,18 @@ export default function BlogEditor() {
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6">{isEditing ? '编辑文章' : '写文章'}</h1>
+      <h1 className="text-2xl font-bold mb-2">{isEditing ? '编辑文章' : '写文章'}</h1>
+
+      {!isEditing && (
+        <div className="mb-5">
+          <label className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-text-muted hover:text-text hover:border-primary/40 hover:bg-surface-alt transition-colors cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {importing ? '导入中...' : '导入 .md 文件'}
+            <input type="file" accept=".md,.mdx,.markdown" onChange={handleImportMd} className="hidden" />
+          </label>
+          <span className="text-xs text-text-muted ml-2">支持 YAML frontmatter（自动解析标题、标签、分类）</span>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
