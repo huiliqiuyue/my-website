@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch profile for a user
   const fetchProfile = useCallback(async (userId) => {
     const { data } = await supabase
       .from('profiles')
@@ -19,7 +18,6 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  // Listen for auth changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
@@ -32,7 +30,6 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
@@ -45,13 +42,25 @@ export function AuthProvider({ children }) {
   }, [fetchProfile]);
 
   const signUp = async (email, password, displayName) => {
-    const { data, error } = await supabase.auth.signUp({
+    // Step 1: Create auth user
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { display_name: displayName } },
     });
-    if (error) throw error;
-    return data;
+    if (signUpError) throw signUpError;
+
+    // Step 2: Manually insert profile (bypass trigger issues)
+    if (signUpData.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({ id: signUpData.user.id, display_name: displayName, role: 'user' });
+      // Ignore duplicate key errors (profile might already exist from trigger)
+      if (profileError && profileError.code !== '23505') {
+        console.warn('Profile insert error:', profileError);
+      }
+    }
+    return signUpData;
   };
 
   const signIn = async (email, password) => {
