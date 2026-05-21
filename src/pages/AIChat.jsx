@@ -95,7 +95,7 @@ function saveEquipped(obj) { localStorage.setItem('ai-equipped', JSON.stringify(
 
 // ==================== Component ====================
 export default function AIChat() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [char, setChar] = useState(() => localStorage.getItem('ai-char') || 'atri');
   const [messages, setMessages] = useState(() => {
     try { const s = localStorage.getItem(`ai-chat-${char}`); return s ? JSON.parse(s) : []; } catch { return []; }
@@ -104,7 +104,12 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [showShop, setShowShop] = useState(false);
-  const [coins, setCoins] = useState(loadCoins);
+  const [coins, setCoins] = useState(() => {
+    const c = loadCoins();
+    // Admin starts with 100 coins
+    if (c === 0 && isAdmin) { saveCoins(100); return 100; }
+    return c;
+  });
   const [inventory, setInventory] = useState(loadInventory);
   const [equipped, setEquipped] = useState(loadEquipped);
   const [detectedScene, setDetectedScene] = useState('default');
