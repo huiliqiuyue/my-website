@@ -22,6 +22,13 @@ const games = [
     color: 'from-red-500/15 to-rose-500/5',
     border: 'hover:border-red-500/40',
   },
+  {
+    title: '无限跑酷', emoji: '🏃',
+    desc: 'Chrome 恐龙风格跑酷。跳跃躲避障碍，速度越来越快，挑战最高分！',
+    to: '/games/runner',
+    color: 'from-purple-500/15 to-violet-500/5',
+    border: 'hover:border-purple-500/40',
+  },
 ];
 
 export default function GamesHub() {

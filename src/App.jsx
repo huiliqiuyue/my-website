@@ -9,6 +9,7 @@ import GamesHub from './pages/GamesHub';
 import SnakeGame from './pages/SnakeGame';
 import Game2048 from './pages/Game2048';
 import MinesweeperGame from './pages/MinesweeperGame';
+import RunnerGame from './pages/RunnerGame';
 import MusicPlayer from './pages/MusicPlayer';
 import HtmlShowcase from './pages/HtmlShowcase';
 import HtmlProjectView from './pages/HtmlProjectView';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="games/snake" element={<SnakeGame />} />
           <Route path="games/2048" element={<Game2048 />} />
           <Route path="games/minesweeper" element={<MinesweeperGame />} />
+          <Route path="games/runner" element={<RunnerGame />} />
           <Route path="showcase" element={<HtmlShowcase />} />
           <Route path="showcase/new" element={<AuthGuard><HtmlProjectEditor /></AuthGuard>} />
           <Route path="showcase/:id" element={<HtmlProjectView />} />
