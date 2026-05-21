@@ -6,6 +6,7 @@ const links = [
   { to: '/', label: '首页' },
   { to: '/blog', label: '博客' },
   { to: '/showcase', label: '作品展' },
+  { to: '/music', label: '音乐' },
   { to: '/games', label: '游戏' },
   { to: '/about', label: '关于' },
 ];

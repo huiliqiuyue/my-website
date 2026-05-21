@@ -9,6 +9,7 @@ import GamesHub from './pages/GamesHub';
 import SnakeGame from './pages/SnakeGame';
 import Game2048 from './pages/Game2048';
 import MinesweeperGame from './pages/MinesweeperGame';
+import MusicPlayer from './pages/MusicPlayer';
 import HtmlShowcase from './pages/HtmlShowcase';
 import HtmlProjectView from './pages/HtmlProjectView';
 import HtmlProjectEditor from './pages/HtmlProjectEditor';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="blog/new" element={<AuthGuard><BlogEditor /></AuthGuard>} />
           <Route path="blog/:slug" element={<BlogPost />} />
           <Route path="blog/:slug/edit" element={<AuthGuard><BlogEditor /></AuthGuard>} />
+          <Route path="music" element={<MusicPlayer />} />
           <Route path="games" element={<GamesHub />} />
           <Route path="games/snake" element={<SnakeGame />} />
           <Route path="games/2048" element={<Game2048 />} />
