@@ -6,7 +6,7 @@
 -- ============================================================
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'vip', 'user')),
   display_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -74,11 +74,27 @@ INSERT INTO about_content (id, content) VALUES (1, '')
   ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 5. Enable Row Level Security
+-- 5. Create friend_links table
+-- ============================================================
+CREATE TABLE IF NOT EXISTS friend_links (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  avatar_url TEXT DEFAULT '',
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  approved BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 6. Enable Row Level Security
 -- ============================================================
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE about_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friend_links ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- 6. RLS Policies: profiles
@@ -130,7 +146,32 @@ CREATE POLICY "Only admins can update about"
   );
 
 -- ============================================================
--- 9. Create default admin account
+-- 9. RLS Policies: friend_links
+-- ============================================================
+-- Anyone can read approved friend links
+CREATE POLICY "Approved friend links are viewable by everyone"
+  ON friend_links FOR SELECT USING (approved = true);
+
+-- Admin and VIP can insert friend links
+CREATE POLICY "Admin and VIP can insert friend links"
+  ON friend_links FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'vip'))
+  );
+
+-- Admin and VIP can update any friend link
+CREATE POLICY "Admin and VIP can update friend links"
+  ON friend_links FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'vip'))
+  );
+
+-- Admin and VIP can delete any friend link
+CREATE POLICY "Admin and VIP can delete friend links"
+  ON friend_links FOR DELETE USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'vip'))
+  );
+
+-- ============================================================
+-- 10. Create default admin account
 --    Email: huiliqiuyue@gmail.com
 --    Password: 1234567890
 -- ============================================================

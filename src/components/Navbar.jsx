@@ -10,6 +10,7 @@ const links = [
   { to: '/music', label: '音乐' },
   { to: '/games', label: '游戏' },
   { to: '/about', label: '关于' },
+  { to: '/friends', label: '友链' },
 ];
 
 export default function Navbar() {
